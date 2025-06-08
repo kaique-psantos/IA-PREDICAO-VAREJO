@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Análise de Lucratividade</title>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@3"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Dashboard de Lucratividade</h1>
+            <p>Análise em tempo real do modelo de Machine Learning</p>
+            <div class="nav-buttons">
+                <button class="nav-btn secondary" onclick="goToPredictor()">🎯 Fazer Previsão</button>
+            </div>
+        </div>
+
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon">🎯</div>
+                <div class="metric-value" id="accuracy">94.75%</div>
+                <div class="metric-label">Acurácia do Modelo</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📈</div>
+                <div class="metric-value" id="highProfitPredictions">414</div>
+                <div class="metric-label">Previsões de Alto Lucro</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📉</div>
+                <div class="metric-value" id="lowProfitPredictions">1.480</div>
+                <div class="metric-label">Previsões de Baixo Lucro</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">⚡</div>
+                <div class="metric-value" id="processingTime">0.19s</div>
+                <div class="metric-label">Tempo Médio de Resposta</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Importância das Features</div>
+                <div class="chart-container">
+                    <canvas id="featureImportanceChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">Distribuição de Previsões</div>
+                <div class="chart-container">
+                    <canvas id="predictionDistributionChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">Matriz de Confusão</div>
+                <div class="chart-container">
+                    <img src="{{ url_for('static', filename='images/confusion_matrix_dt.png') }}" alt="Árvore de Decisão" class="responsive-img">
+                </div>
+            </div>
+
+
+            <div class="chart-card full-width-tree">
+                <div class="chart-title">Árvore de Decisão</div>
+                <div class="chart-container-tree">
+                    <img src="{{ url_for('static', filename='images/decision_tree.png') }}" alt="Árvore de Decisão" class="responsive-img">
+                </div>
+            </div>
+
+
+        </div>
+
+        
+        <div class="prediction-simulator">
+            <div class="simulator-title">⚡ Previsões Rápidas - Cenários Comuns</div>
+            <div class="quick-predictions">
+                <div class="prediction-card prediction-high" onclick="showScenarioDetails('tech-high')">
+                    <h4>📱 Technology + Vendas Altas</h4>
+                    <p><strong>89%</strong> Alto Lucro</p>
+                    <small>Cenário: $2000+, desconto &lt;10%</small>
+                </div>
+                <div class="prediction-card prediction-low" onclick="showScenarioDetails('furniture-discount')">
+                    <h4>🪑 Furniture + Desconto Alto</h4>
+                    <p><strong>76%</strong> Baixo Lucro</p>
+                    <small>Cenário: desconto &gt;20%</small>
+                </div>
+                <div class="prediction-card prediction-high" onclick="showScenarioDetails('office-medium')">
+                    <h4>📎 Office Supplies Médio</h4>
+                    <p><strong>65%</strong> Alto Lucro</p>
+                    <small>Cenário: $500-1500, desconto médio</small>
+                </div>
+                <div class="prediction-card prediction-low" onclick="showScenarioDetails('low-sales')">
+                    <h4>📉 Vendas Baixas</h4>
+                    <p><strong>91%</strong> Baixo Lucro</p>
+                    <small>Cenário: vendas &lt;$200</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

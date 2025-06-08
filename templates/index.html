@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsão de Lucratividade - Varejo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Previsão de Lucratividade</h1>
+            <p>Descubra se seu produto terá alto ou baixo lucro em diferentes regiões</p>
+            <div class="nav-buttons">
+                <button class="nav-btn secondary" onclick="goToDashboard()">Dashboard</button>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <div class="info-card">
+                <h3>Como funciona?</h3>
+                <p>Nosso modelo de Machine Learning analisa dados históricos de vendas para prever se uma combinação de produto, região e parâmetros de venda resultará em alta ou baixa lucratividade.</p>
+                
+            </div>
+
+            <form id="predictionForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="category">Categoria do Produto *</label>
+                        <select id="category" name="category" required>
+                            <option value="">Selecione uma categoria</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subcategory">Subcategoria *</label>
+                        <select id="subcategory" name="subcategory" required disabled>
+                            <option value="">Selecione uma subcategoria</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="region">Região *</label>
+                        <select id="region" name="region" required>
+                            <option value="">Selecione uma região</option>
+                            {% for region in regions %}
+                            <option value="{{ region }}">{{ region }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state">Estado *</label>
+                        <select id="state" name="state" required>
+                            <option value="">Selecione um estado</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sales">Valor de Vendas (USD) *</label>
+                        <input type="number" id="sales" name="sales" step="0.01" min="0" placeholder="Ex: 1000.50" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity">Quantidade *</label>
+                        <input type="number" id="quantity" name="quantity" min="1" placeholder="Ex: 5" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="discount">Desconto (0-1) *</label>
+                    <input type="number" id="discount" name="discount" step="0.01" min="0" max="1" placeholder="Ex: 0.15 (15%)" required>
+                </div>
+
+                <button type="submit" class="btn-predict" id="predictBtn">
+                    🔮 Prever Lucratividade
+                </button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                Processando previsão...
+            </div>
+
+            <div class="result-container" id="resultContainer">
+                <div class="result-title" id="resultTitle"></div>
+                <div id="resultContent"></div>
+                <div class="result-details" id="resultDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        function goToDashboard() {
+            window.location.href = '/dashboard';
+        }   
+
+        const subcategories = {{ subcategories | tojson }};
+
+        document.getElementById('category').addEventListener('change', function() {
+            const category = this.value;
+            const subcategorySelect = document.getElementById('subcategory');
+            
+            subcategorySelect.innerHTML = '<option value="">Selecione uma subcategoria</option>';
+            subcategorySelect.disabled = !category;
+            
+            if (category && subcategories[category]) {
+                subcategories[category].forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    option.textContent = sub;
+                    subcategorySelect.appendChild(option);
+                });
+            }
+        });
+
+        document.getElementById('region').addEventListener('change', async function() {
+            const region = this.value;
+            const stateSelect = document.getElementById('state');
+            
+            stateSelect.innerHTML = '<option value="">Selecione um estado</option>';
+            stateSelect.disabled = !region;
+            
+            if (region) {
+                try {
+                    const response = await fetch(`/get_states/${region}`);
+                    const states = await response.json();
+                    
+                    states.forEach(state => {
+                        const option = document.createElement('option');
+                        option.value = state;
+                        option.textContent = state;
+                        stateSelect.appendChild(option);
+                    });
+                    
+                    stateSelect.disabled = false;
+                } catch (error) {
+                    console.error('Erro ao buscar estados:', error);
+                }
+            }
+        });
+
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultContainer').style.display = 'none';
+            document.getElementById('predictBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                // Esconder loading
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('predictBtn').disabled = false;
+                
+                showResult(result);
+                
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('predictBtn').disabled = false;
+                showResult({error: 'Erro de conexão com o servidor'});
+            }
+        });
+
+        function showResult(result) {
+            const container = document.getElementById('resultContainer');
+            const title = document.getElementById('resultTitle');
+            const content = document.getElementById('resultContent');
+            const details = document.getElementById('resultDetails');
+            
+            container.style.display = 'block';
+            
+            if (result.error) {
+                container.className = 'result-container result-error';
+                title.textContent = '❌ Erro na Previsão';
+                content.textContent = result.error;
+                details.style.display = 'none';
+            } else {
+                const isHighProfit = result.prediction === 'Alto Lucro';
+                container.className = `result-container ${isHighProfit ? 'result-success' : 'result-warning'}`;
+                
+                title.textContent = `${isHighProfit ? '📈' : '📉'} ${result.prediction}`;
+                content.innerHTML = `
+                    <p><strong>Previsão:</strong> ${result.prediction}</p>
+                    <p><strong>Confiança:</strong> ${result.confidence}</p>
+                `;
+                
+                details.innerHTML = `
+                    <strong>Detalhes da Previsão:</strong><br>
+                    📦 Produto: ${result.details.category} - ${result.details.subcategory}<br>
+                    🌍 Localização: ${result.details.region}, ${result.details.state}<br>
+                    💰 Vendas: $${parseFloat(result.details.sales).toFixed(2)}<br>
+                    📊 Quantidade: ${result.details.quantity}<br>
+                    🏷️ Desconto: ${(parseFloat(result.details.discount) * 100).toFixed(1)}%
+                `;
+                details.style.display = 'block';
+            }
+            
+            // Scroll suave para o resultado
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
